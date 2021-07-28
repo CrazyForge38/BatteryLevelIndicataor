@@ -1,30 +1,12 @@
 #include <Adafruit_ADS1X15.h>
-#define elementCount(x) (sizeof(x) / sizeof(x[0])
 #define AVERAGE_WINDOW_SIZE (10)
 
 Adafruit_ADS1115 ads;  /* Use this for the 16-bit version */
 //Adafruit_ADS1015 ads;/* Use this for the 12-bit version */
 
-
-//float volts0, volts1, volts2, volts3;
-
-const int AVG_RATE_TEST_SIZE = 1000;// do we want this to be adjustable and keep as a gloabal
-
-
-
-
-
-
-
-
-
+//float volts0, volts1, volts2, volts3; //might be used later
 
 float maCollection [AVERAGE_WINDOW_SIZE] = {};
-
-//////////////////////////////// testing
-
-const float mySamples[21] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21};
-const float myMA[21] = {1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6.5, 7.5, 8.5, 9.5, 10.5, 11.5, 12.5, 13.5, 14.5, 15.5, 16.5};
 
 void setup(void)
 {
@@ -57,40 +39,10 @@ void setup(void)
 void loop(void)//this is the main???
 {
   delay(1000);
+  //AverageRate();
   batteryScaleFactor();
   delay(1000);
 }
-
-/*void testMA(float sample, float ma) {
-  static float sampledMA = 0;
-  sampledMA = MovingAverage();
-
-  Serial.print("Testing sample[");
-  Serial.print(sample);
-  Serial.print("]: ");
-
-  Serial.print("sampled MA[");
-  Serial.print(sampledMA);
-  Serial.print("]: ");
-
-  Serial.print("Testing MA[");
-  Serial.print(ma);
-  Serial.print("]: ");
-
-  if (abs(sampledMA - ma) <= .01)
-  {
-    Serial.println("OK");
-    Serial.println();
-  }
-  else
-  {
-    Serial.println("ERROR");
-    Serial.println();
-  }
-
-  Serial.println("---------------------------------------------------------");
-}*/
-
 
 float StartTime()
 {
@@ -106,6 +58,7 @@ float FinishTime()
 
 float AverageRate(void)
 {
+  const int AVG_RATE_TEST_SIZE = 1000;
   static int AvgRateState = 0;
   static float starttime = 0;
 
@@ -113,9 +66,9 @@ float AverageRate(void)
   {
     starttime = StartTime();
 
-
     Serial.print("Start: ");
     Serial.print(starttime);
+    Serial.print(" us");
     Serial.println();
   }
 
@@ -127,6 +80,7 @@ float AverageRate(void)
     float finishtime = FinishTime();
     Serial.print("end:   ");
     Serial.print(finishtime);
+    Serial.print(" us");
     Serial.println();
 
     rateResult = (finishtime - starttime) / AVG_RATE_TEST_SIZE;
@@ -137,7 +91,6 @@ float AverageRate(void)
     Serial.println();
     Serial.println();
   }
-
 }
 
 float grabAdcValue()
@@ -264,7 +217,7 @@ float MovingAverage()
     return movingAverage;
 }
 
-float batteryScaleFactor()
+float batteryScaleFactor() //not finsihed
 {
   float scaleFactor = 0;
   
