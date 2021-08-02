@@ -217,7 +217,7 @@ float MovingAverage()
     return movingAverage;
 }
 
-float batteryScaleFactor() //not finsihed
+float batteryScaleFactor() //not finsihedd
 {
   float scaleFactor = 0;
   
