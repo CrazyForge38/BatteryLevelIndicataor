@@ -42,17 +42,21 @@ void setup(void)
 void loop(void)//this is the main???
 {
   delay(1000);
-  //AverageRate();
+
   //batteryScaleFactor();
-  for (int i = 0; i < 21; i++)
-  {
-    delay(1000);
-    testMA(mySamples[i], myMA[i]);
-  }
+
+    findSlope(4,2,6,8);
+  
+  //MovingAverage();
+  //for (int i = 0; i < 21; i++)
+  //{
+   // delay(1000);
+   // testMA(mySamples[i], myMA[i]);
+  //}
   delay(1000);
 }
 
-void testMA(float sample, float ma) //tests the moving average
+/*void testMA(float sample, float ma) //tests the moving average
 {
   static float sampledMA = 0;
   sampledMA = MovingAverage();
@@ -81,7 +85,7 @@ void testMA(float sample, float ma) //tests the moving average
   }
 
   Serial.println("---------------------------------------------------------");
-}
+}*/
 
 float StartTime()
 {
@@ -105,10 +109,10 @@ float AverageRate(void)
   {
     starttime = StartTime();
 
-    Serial.print("Start: ");
-    Serial.print(starttime);
-    Serial.print(" us");
-    Serial.println();
+    //Serial.print("Start: ");
+    //Serial.print(starttime);
+   // Serial.print(" us");
+    //Serial.println();
   }
 
   AvgRateState++;
@@ -117,18 +121,18 @@ float AverageRate(void)
   {
     static float rateResult = 0;
     float finishtime = FinishTime();
-    Serial.print("end:   ");
-    Serial.print(finishtime);
-    Serial.print(" us");
-    Serial.println();
+    //Serial.print("end:   ");
+   // Serial.print(finishtime);
+   // Serial.print(" us");
+    //Serial.println();
 
     rateResult = (finishtime - starttime) / AVG_RATE_TEST_SIZE;
 
-    Serial.print("average for 1k tests: ");
-    Serial.print(rateResult, 4); //", 4" prints the amount of decimals I want
-    Serial.print(" micro seconds");
-    Serial.println();
-    Serial.println();
+    //Serial.print("average for 1k tests: ");
+    //Serial.print(rateResult, 4); //", 4" prints the amount of decimals I want
+    //Serial.print(" micro seconds");
+    //Serial.println();
+    //Serial.println();
   }
 }
 
@@ -143,12 +147,12 @@ float grabVoltValue()
   adc2 = ads.readADC_SingleEnded(2);
   adc3 = ads.readADC_SingleEnded(3);
 
-  //volts0 = ads.computeVolts(adc0);
+  volts0 = ads.computeVolts(adc0);
   volts1 = ads.computeVolts(adc1);
   volts2 = ads.computeVolts(adc2);
   volts3 = ads.computeVolts(adc3);
 
-  volts0 = mySamples[i];
+  //volts0 = mySamples[i];
 
   return volts0;
 }
@@ -160,11 +164,11 @@ void fillMovingArray(float sample)//array imp of q
 
   if (stateFill < AVERAGE_WINDOW_SIZE)
   {
-    Serial.print("sample: ");
-    Serial.println(sample);
+    //Serial.print("sample: ");
+    //Serial.println(sample);
 
-    Serial.print("index: ");
-    Serial.println(currentIndexQA);
+    //Serial.print("index: ");
+    //Serial.println(currentIndexQA);
 
     maCollection[currentIndexQA] = sample;
 
@@ -175,22 +179,22 @@ void fillMovingArray(float sample)//array imp of q
     return;
   }
 
-  Serial.print("state: ");
-  Serial.println(stateFill);
+  //Serial.print("state: ");
+  //Serial.println(stateFill);
 
-  Serial.print("index: ");
-  Serial.println(currentIndexQA);
+  //Serial.print("index: ");
+  //Serial.println(currentIndexQA);
 
   for (int i = 0; i < AVERAGE_WINDOW_SIZE; i++)
   {
-      maCollection[i] = maCollection[i + 1]; // i am getting an error here bc i go out of bounds
-  }   // but when i change it to do nothing for the last part, it stops the index from grabing  
-      // the new sample but index is 10 so I think i need to change it to 9 and stuff                                      
-  Serial.print("sample: ");
-  Serial.println(sample);
+      maCollection[i] = maCollection[i + 1]; // array is not out of bounds??
+  }   
+                                        
+  //Serial.print("sample: ");
+  //Serial.println(sample);
 
-  Serial.print("index: ");
-  Serial.println(currentIndexQA);
+  //Serial.print("index: ");
+  //Serial.println(currentIndexQA);
 
   maCollection[currentIndexQA] = sample;
 
@@ -207,20 +211,20 @@ float MovingAverage()
 
   Ma_Grab_Volt_Value = grabVoltValue();
 
-  Serial.print("adc: ");
-  Serial.println(Ma_Grab_Volt_Value);
+  //Serial.print("Volt: ");
+  //Serial.println(Ma_Grab_Volt_Value);
 
-  fillMovingArray(Ma_Grab_Volt_Value); //I could just use the grabadcvalue in here
+  fillMovingArray(Ma_Grab_Volt_Value);
 
   for (int i = 0; i < AVERAGE_WINDOW_SIZE; i++)
   {
-    Serial.print("[");
-    Serial.print(i);
-    Serial.print("]: ");
-    Serial.println(maCollection[i]);
+    //Serial.print("[");
+    //Serial.print(i);
+    //Serial.print("]: ");
+    //Serial.println(maCollection[i]);
   }
 
-  Serial.println();
+  //Serial.println();
 
   if (First_Fill_Index < AVERAGE_WINDOW_SIZE)
   {
@@ -229,8 +233,8 @@ float MovingAverage()
       sumMA += maCollection[i];
     }
 
-    Serial.print("sumMA: ");
-    Serial.println(sumMA);
+    //Serial.print("sumMA: ");
+    //Serial.println(sumMA);
 
     movingAverage = sumMA / float(First_Fill_Index);
 
@@ -238,9 +242,9 @@ float MovingAverage()
 
     First_Fill_Index++;
 
-    Serial.print("ma: ");
-    Serial.println(movingAverage);
-    Serial.println();
+    //Serial.print("ma: ");
+    //Serial.println(movingAverage);
+    //Serial.println();
 
     return movingAverage;
   }
@@ -250,16 +254,16 @@ float MovingAverage()
     sumMA += maCollection[i];
   }
 
-  Serial.print("sumMA: ");
-  Serial.println(sumMA);
+  //Serial.print("sumMA: ");
+  //Serial.println(sumMA);
 
   movingAverage = sumMA / AVERAGE_WINDOW_SIZE;
   sumMA = 0;
 
-  Serial.print("ma: ");
-  Serial.print(movingAverage);
-  Serial.println(" V");
-  Serial.println();
+  //Serial.print("ma: ");
+  //Serial.print(movingAverage);
+  //Serial.println(" V");
+  //Serial.println();
 
   return movingAverage;
 }
@@ -284,37 +288,52 @@ int grabIntValue()
 
 float findSlope(float x1, float y1, float x2, float y2)
 {
-  Serial.println(x1);
-  Serial.println(y1);
-  Serial.println(x2);
-  Serial.println(y2);
+  float chngInX = 0;
+  float chngInY = 0;
+  float slope = 0;
+  
+  chngInY = y2-y1;
+  chngInX = x2-x1;
+
+  slope = abs(chngInY/chngInX);
+
+  Serial.println(slope);
+ 
+  return slope;
 }
 
 float batteryScaleFactor() //need to set Serial Monitor to "no line ending"
 {
-  float scaleFactorSample = 0;
-  //int  scaleSampleSize = 0;
-  float initVoltVal = 0;
-  int stateCallfindSlope = 0;
+  float scaled_Output = 0;
+  float battery_Volt_Val = 0;
+  int state_of_Scale_Factor = 0;
   float tempX1 = 0;
-  float tempY1 = 0;
+  float tempY1 = 0; 
 
-  Serial.println("Enter a float for the battery power level.");
-
-  initVoltVal = grabFloatValue();
-
-  Serial.println(MovingAverage());
-
-  stateCallfindSlope ++;
-
-  if (stateCallfindSlope == 1)
+  if (state_of_Scale_Factor == 0)
   {
-    tempX1 = initVoltVal;
-    tempY1 = scaleFactorSample;
+    Serial.println("Enter a float for the first battery power level.");
+
+    battery_Volt_Val = grabFloatValue();
+
+    state_of_Scale_Factor ++;
+
+    scaled_Output = MovingAverage();
+    
+    tempX1 = battery_Volt_Val;
+    tempY1 = scaled_Output;
   }
 
-  if (stateCallfindSlope == 2)
+  if (state_of_Scale_Factor == 1)
   {
-    findSlope(tempX1, tempY1, initVoltVal, scaleFactorSample);
+    Serial.println("Enter a float for the second battery power level.");
+
+    battery_Volt_Val = grabFloatValue();
+
+    scaled_Output = MovingAverage();
+
+    state_of_Scale_Factor ++;
+    
+    findSlope(tempX1, tempY1, battery_Volt_Val, scaled_Output);
   }
 }
