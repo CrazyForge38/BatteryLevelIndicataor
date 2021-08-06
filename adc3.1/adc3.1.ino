@@ -39,9 +39,7 @@ void loop(void)//this is the main???
 {
   delay(1000);
 
-  //MovingAverage();
-
-  AverageRate();
+  //depending what we are doing but the main function is "MovingAverage()"
   
   delay(1000);
 }
