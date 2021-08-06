@@ -43,68 +43,105 @@ void setup(void)
 
 void loop(void)//this is the main???
 {
-  delay(1000);
+  delay(4000);
 
   //batteryScaleFactor();
 
-  MovingAverage();
-  //for (int i = 0; i < 21; i++)
-  //{
-  // delay(1000);
-  // testMA(mySamples[i], myMA[i]);
-  //}
+  //MovingAverage();
+  for (int i = 0; i < 21; i++)
+  {
+   delay(1000);
+   testMA(mySamples[i], myMA[i]);
+  }
   delay(1000);
 }
+
+void testMA(float sample, float ma) //tests the moving average
+{
+  static float sampledMA = 0;
+  sampledMA = MovingAverage();
+  Serial.print("Testing sample[");
+  Serial.print(sample);
+  Serial.print("]: ");
+  Serial.print("sampled MA[");
+  Serial.print(sampledMA);
+  Serial.print("]: ");
+  Serial.print("Testing MA[");
+  Serial.print(ma);
+  Serial.print("]: ");
+  if (abs(sampledMA - ma) <= .01)
+  {
+    Serial.println("OK");
+    Serial.println();
+  }
+  else
+  {
+    Serial.println("ERROR");
+    Serial.println();
+  }
+  Serial.println("---------------------------------------------------------");
+}
+
 
 float grabVoltValue()
 {
   int16_t adc0, adc1, adc2, adc3;
   float volts0, volts1, volts2, volts3;
-  //static int i = -1;
-  //i++;
-  adc0 = ads.readADC_SingleEnded(0);
+  static int i = -1;
+  i++;
+  //adc0 = ads.readADC_SingleEnded(0);
   adc1 = ads.readADC_SingleEnded(1);
   adc2 = ads.readADC_SingleEnded(2);
   adc3 = ads.readADC_SingleEnded(3);
-  Serial.println("testing grab");
-  volts0 = ads.computeVolts(adc0);
+  //Serial.println("testing grab");
+  //volts0 = ads.computeVolts(adc0);
   volts1 = ads.computeVolts(adc1);
   volts2 = ads.computeVolts(adc2);
   volts3 = ads.computeVolts(adc3);
 
-  //volts0 = mySamples[i];
-
+  volts0 = mySamples[i];
+  //return adc0;
   return volts0;
 }
 
 void fillQueue(float sample)// queue
 {
   static int stateFill = 0;
-
+  static bool stateFilled = false; 
+  
+  Serial.println("tesing the state");
   if (stateFill < AVERAGE_WINDOW_SIZE)
   {
+    Serial.print("tesing the sample");
+    Serial.println(sample);
     Mov_AvgQ.push(sample);
     stateFill++;
   }
+
+  if (stateFill == AVERAGE_WINDOW_SIZE && stateFilled == true)
+  {
+    Serial.println("tesing the ==");
+    Mov_AvgQ.pop();
+    Mov_AvgQ.push(sample);
+  } 
   
   if (stateFill == AVERAGE_WINDOW_SIZE)
   {
-    Mov_AvgQ.pop();
-    Mov_AvgQ.push(sample);
+    stateFilled = true;  
   }
+  
   return;
 }
 
 float MovingAverage()
 {
-  static int First_Fill_Index = 0;
-  //static int callcount = 0;
+  static int fill_Index = 0;
   static float sumMA = 0;
   static float Ma_Grab_Volt_Value = 0;
-  static float movingAverage = 0;
-  Queue<float> tempMA = Queue<float>(AVERAGE_WINDOW_SIZE);
+  static float movingAverage = 0; 
   float temp = 0;
-
+  Queue<float> tempMA = Queue<float>(AVERAGE_WINDOW_SIZE);
+ 
   Ma_Grab_Volt_Value = grabVoltValue();
 
   Serial.print("Volt: ");
@@ -112,47 +149,43 @@ float MovingAverage()
 
   fillQueue(Ma_Grab_Volt_Value);
 
-  if (First_Fill_Index < AVERAGE_WINDOW_SIZE)
+  while (Mov_AvgQ.count() != 0) //.count != 0
   {
-    while (Mov_AvgQ.count() != 0) //.count != 0
+    if(Mov_AvgQ.count() != 0)
     {
-      temp = Mov_AvgQ.peek();
-      tempMA.push(temp);
-      Mov_AvgQ.pop();
-      sumMA += temp;
+      Serial.print("[");
+      Serial.print(Mov_AvgQ.count()-1);
+      Serial.print("]: ");
+      Serial.println(Mov_AvgQ.peek());
     }
-
-    while (tempMA.count() != 0)
-    {
-      Mov_AvgQ.push(tempMA.peek());
-      tempMA.pop();
-    }
+    temp = Mov_AvgQ.peek();
+    tempMA.push(temp);
+    Mov_AvgQ.pop();
+    sumMA += temp;
     
-    First_Fill_Index++;
-    movingAverage = sumMA / First_Fill_Index;
-
-    Serial.print("sumMA: ");
-    Serial.println(sumMA);
-
-    Serial.print("ma: ");
-    Serial.print(movingAverage);
-    Serial.println(" V");
-    Serial.println();
-    
-    sumMA = 0;
-    return movingAverage;
   }
+
+  while (tempMA.count() != 0)
+  {
+    Mov_AvgQ.push(tempMA.peek());
+    tempMA.pop();
+  }
+
+  if (fill_Index < AVERAGE_WINDOW_SIZE)
+  {
+    fill_Index++;
+  }
+
+  movingAverage = sumMA / fill_Index;
 
   Serial.print("sumMA: ");
   Serial.println(sumMA);
-
-  movingAverage = sumMA / AVERAGE_WINDOW_SIZE;
-  sumMA = 0;
 
   Serial.print("ma: ");
   Serial.print(movingAverage);
   Serial.println(" V");
   Serial.println();
 
+  sumMA = 0;
   return movingAverage;
 }
