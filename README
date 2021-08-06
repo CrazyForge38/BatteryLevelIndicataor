@@ -1,6 +1,1 @@
-<<<<<<< HEAD
-this is creating a readme section for the repo with test.
-
-=======
-this is creating a readme section for the repo.
->>>>>>> 68564d9fb1c741c55c4951fa3302ba63c4f47ba2
+I have the Moving Average with a queue working and I get "OK" for all test cases until it reaches the end, then I get "ERROR". This is because I dont not have an init method to reinitialize the queue in after the code is ran. Once and if i need to do that, i can create a method that init the queue when prometed to in the void loop void. this would allow the MA to constanly be updated. 
