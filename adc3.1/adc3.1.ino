@@ -248,7 +248,7 @@ float batteryScaleFactor() //need to set Serial Monitor to "no line ending"
   float tempY1 = 0;
   float scaleFactor = 0;
 
-  if (state_of_Scale_Factor == 0) //therefore i can re warite this to find a slope y = mx + b 
+  if (state_of_Scale_Factor == 0) //therefore i can re warite this to find a slope y = mx + b // regression method type thing maybe.
   {
     Serial.println("Enter a float for the first battery power level.");
 
