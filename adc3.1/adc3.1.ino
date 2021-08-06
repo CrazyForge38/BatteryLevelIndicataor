@@ -1,15 +1,11 @@
 #include <Adafruit_ADS1X15.h>
+#include "Queue.h"
 #define AVERAGE_WINDOW_SIZE (10)
 
 Adafruit_ADS1115 ads;  /* Use this for the 16-bit version */
 //Adafruit_ADS1015 ads;/* Use this for the 12-bit version */
 
-//float volts0, volts1, volts2, volts3; //might be used later
-
-float maCollection [AVERAGE_WINDOW_SIZE] = {};
-
-const float mySamples[21] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21};
-const float myMA[21] = {1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6.5, 7.5, 8.5, 9.5, 10.5, 11.5, 12.5, 13.5, 14.5, 15.5, 16.5};
+Queue<float> Mov_AvgQ = Queue<float>(AVERAGE_WINDOW_SIZE);
 
 void setup(void)
 {
@@ -43,49 +39,12 @@ void loop(void)//this is the main???
 {
   delay(1000);
 
-  //batteryScaleFactor();
-
-    findSlope(4,2,6,8);
-  
   //MovingAverage();
-  //for (int i = 0; i < 21; i++)
-  //{
-   // delay(1000);
-   // testMA(mySamples[i], myMA[i]);
-  //}
+
+  AverageRate();
+  
   delay(1000);
 }
-
-/*void testMA(float sample, float ma) //tests the moving average
-{
-  static float sampledMA = 0;
-  sampledMA = MovingAverage();
-
-  Serial.print("Testing sample[");
-  Serial.print(sample);
-  Serial.print("]: ");
-
-  Serial.print("sampled MA[");
-  Serial.print(sampledMA);
-  Serial.print("]: ");
-
-  Serial.print("Testing MA[");
-  Serial.print(ma);
-  Serial.print("]: ");
-
-  if (abs(sampledMA - ma) <= .01)
-  {
-    Serial.println("OK");
-    Serial.println();
-  }
-  else
-  {
-    Serial.println("ERROR");
-    Serial.println();
-  }
-
-  Serial.println("---------------------------------------------------------");
-}*/
 
 float StartTime()
 {
@@ -102,37 +61,49 @@ float FinishTime()
 float AverageRate(void)
 {
   const int AVG_RATE_TEST_SIZE = 1000;
-  static int AvgRateState = 0;
-  static float starttime = 0;
-
+  int AvgRateState = 0;
+  float starttime = 0;
+  float rateResult = 0;
+  static float periodResult = 0;
+  float finishTime = 0;
+  
   if (AvgRateState = 1)
   {
     starttime = StartTime();
 
-    //Serial.print("Start: ");
-    //Serial.print(starttime);
-   // Serial.print(" us");
-    //Serial.println();
+    Serial.print("Start: ");
+    Serial.print(starttime);
+    Serial.print(" us");
+    Serial.println();
   }
 
   AvgRateState++;
 
   if (AvgRateState = AVG_RATE_TEST_SIZE)
   {
-    static float rateResult = 0;
-    float finishtime = FinishTime();
-    //Serial.print("end:   ");
-   // Serial.print(finishtime);
-   // Serial.print(" us");
-    //Serial.println();
+    finishTime = FinishTime();
+    
+    Serial.print("end:   ");
+    Serial.print(finishTime);
+    Serial.print(" us"); // in micro so lets fix that
+    Serial.println();
 
-    rateResult = (finishtime - starttime) / AVG_RATE_TEST_SIZE;
+    periodResult = (finishTime - starttime) / AVG_RATE_TEST_SIZE; 
 
-    //Serial.print("average for 1k tests: ");
-    //Serial.print(rateResult, 4); //", 4" prints the amount of decimals I want
-    //Serial.print(" micro seconds");
-    //Serial.println();
-    //Serial.println();
+    Serial.print("Period: ");
+    Serial.print(periodResult);
+    Serial.print(" us");
+    Serial.println();
+    
+    rateResult = 1/(periodResult*1e-6);
+
+    Serial.print("Rate: ");
+    Serial.print(rateResult);
+    Serial.print(" Hz");
+    Serial.println();
+    Serial.println();
+    
+    return rateResult;
   }
 }
 
@@ -140,8 +111,7 @@ float grabVoltValue()
 {
   int16_t adc0, adc1, adc2, adc3;
   float volts0, volts1, volts2, volts3;
-  static int i = -1;
-  i++;
+  
   adc0 = ads.readADC_SingleEnded(0);
   adc1 = ads.readADC_SingleEnded(1);
   adc2 = ads.readADC_SingleEnded(2);
@@ -152,119 +122,74 @@ float grabVoltValue()
   volts2 = ads.computeVolts(adc2);
   volts3 = ads.computeVolts(adc3);
 
-  //volts0 = mySamples[i];
-
   return volts0;
 }
 
-void fillMovingArray(float sample)//array imp of q
+void fillQueue(float sample)// queue
 {
   static int stateFill = 0;
-  static int currentIndexQA = 0;
+  static bool stateFilled = false; 
 
   if (stateFill < AVERAGE_WINDOW_SIZE)
   {
-    //Serial.print("sample: ");
-    //Serial.println(sample);
-
-    //Serial.print("index: ");
-    //Serial.println(currentIndexQA);
-
-    maCollection[currentIndexQA] = sample;
-
-    currentIndexQA++;
-
+    Mov_AvgQ.push(sample);
     stateFill++;
-
-    return;
   }
 
-  //Serial.print("state: ");
-  //Serial.println(stateFill);
-
-  //Serial.print("index: ");
-  //Serial.println(currentIndexQA);
-
-  for (int i = 0; i < AVERAGE_WINDOW_SIZE; i++)
+  if (stateFill == AVERAGE_WINDOW_SIZE && stateFilled == true)
   {
-      maCollection[i] = maCollection[i + 1]; // array is not out of bounds??
-  }   
-                                        
-  //Serial.print("sample: ");
-  //Serial.println(sample);
-
-  //Serial.print("index: ");
-  //Serial.println(currentIndexQA);
-
-  maCollection[currentIndexQA] = sample;
-
+    Mov_AvgQ.pop();
+    Mov_AvgQ.push(sample);
+  } 
+  
+  if (stateFill == AVERAGE_WINDOW_SIZE)
+  {
+    stateFilled = true;  
+  }
+  
   return;
 }
 
 float MovingAverage()
 {
-  static int First_Fill_Index = 1;
-  //static int callcount = 0;
+  static int fill_Index = 0;
   static float sumMA = 0;
   static float Ma_Grab_Volt_Value = 0;
   static float movingAverage = 0;
+  float temp = 0;
+  Queue<float> tempMA = Queue<float>(AVERAGE_WINDOW_SIZE);
 
   Ma_Grab_Volt_Value = grabVoltValue();
 
-  //Serial.print("Volt: ");
-  //Serial.println(Ma_Grab_Volt_Value);
+  fillQueue(Ma_Grab_Volt_Value);
 
-  fillMovingArray(Ma_Grab_Volt_Value);
-
-  for (int i = 0; i < AVERAGE_WINDOW_SIZE; i++)
+  while (Mov_AvgQ.count() != 0) //.count != 0
   {
-    //Serial.print("[");
-    //Serial.print(i);
-    //Serial.print("]: ");
-    //Serial.println(maCollection[i]);
+    temp = Mov_AvgQ.peek();
+    tempMA.push(temp);
+    Mov_AvgQ.pop();
+    sumMA += temp;
   }
 
-  //Serial.println();
-
-  if (First_Fill_Index < AVERAGE_WINDOW_SIZE)
+  while (tempMA.count() != 0)
   {
-    for (int i = 0; i < First_Fill_Index; i++)
-    {
-      sumMA += maCollection[i];
-    }
-
-    //Serial.print("sumMA: ");
-    //Serial.println(sumMA);
-
-    movingAverage = sumMA / float(First_Fill_Index);
-
-    sumMA = 0;
-
-    First_Fill_Index++;
-
-    //Serial.print("ma: ");
-    //Serial.println(movingAverage);
-    //Serial.println();
-
-    return movingAverage;
+    Mov_AvgQ.push(tempMA.peek());
+    tempMA.pop();
   }
 
-  for (int i = 0; i < First_Fill_Index; i++)
+  if (fill_Index < AVERAGE_WINDOW_SIZE)
   {
-    sumMA += maCollection[i];
+    fill_Index++;
   }
 
-  //Serial.print("sumMA: ");
-  //Serial.println(sumMA);
+  movingAverage = sumMA / fill_Index;
 
-  movingAverage = sumMA / AVERAGE_WINDOW_SIZE;
+  Serial.print("ma: ");
+  Serial.print(movingAverage);
+  Serial.println(" V");
+  Serial.println();
+
   sumMA = 0;
-
-  //Serial.print("ma: ");
-  //Serial.print(movingAverage);
-  //Serial.println(" V");
-  //Serial.println();
-
   return movingAverage;
 }
 
@@ -291,14 +216,14 @@ float findSlope(float x1, float y1, float x2, float y2)
   float chngInX = 0;
   float chngInY = 0;
   float slope = 0;
-  
-  chngInY = y2-y1;
-  chngInX = x2-x1;
 
-  slope = abs(chngInY/chngInX);
+  chngInY = y2 - y1;
+  chngInX = x2 - x1;
+
+  slope = abs(chngInY / chngInX);
 
   Serial.println(slope);
- 
+
   return slope;
 }
 
@@ -308,7 +233,7 @@ float batteryScaleFactor() //need to set Serial Monitor to "no line ending"
   float battery_Volt_Val = 0;
   int state_of_Scale_Factor = 0;
   float tempX1 = 0;
-  float tempY1 = 0; 
+  float tempY1 = 0;
 
   if (state_of_Scale_Factor == 0)
   {
@@ -319,7 +244,7 @@ float batteryScaleFactor() //need to set Serial Monitor to "no line ending"
     state_of_Scale_Factor ++;
 
     scaled_Output = MovingAverage();
-    
+
     tempX1 = battery_Volt_Val;
     tempY1 = scaled_Output;
   }
@@ -333,7 +258,7 @@ float batteryScaleFactor() //need to set Serial Monitor to "no line ending"
     scaled_Output = MovingAverage();
 
     state_of_Scale_Factor ++;
-    
+
     findSlope(tempX1, tempY1, battery_Volt_Val, scaled_Output);
   }
 }
