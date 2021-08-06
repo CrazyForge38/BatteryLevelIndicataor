@@ -1,7 +1,0 @@
-compile:
-  platforms:
-    - uno
-
-unittest:
-  platforms:
-    - uno
