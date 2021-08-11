@@ -1,10 +1,8 @@
-#define DEBUG
+//#define DEBUG
 #define AVERAGE_WINDOW_SIZE (10)
 #define NUM_SCALE_SAMPLES (4)
 #include <Adafruit_ADS1X15.h>
 #include "Queue.h"
-
-//ma average and globabl
 
 Adafruit_ADS1115 ads;  /* Use this for the 16-bit version */
 //Adafruit_ADS1015 ads;/* Use this for the 12-bit version */
@@ -13,7 +11,6 @@ Queue<float> Mov_AvgQ = Queue<float>(AVERAGE_WINDOW_SIZE);
 
 static int stateFill = 0; //used for reseting "fillQueue"
 bool stateFilled = false;
-static int ma_Fill_Index = 0;
 
 void setup(void)
 {
@@ -173,15 +170,15 @@ float MovingAverage()
   static float movingAverage = 0;
   float temp = 0;
   Queue<float> tempMA = Queue<float>(AVERAGE_WINDOW_SIZE);//temporarily holds the value of the queue to find the sum
-
+  
   Ma_Grab_Volt_Value = grabAdsValue();
 
-#ifdef DEBUG
+  #ifdef DEBUG
   Serial.print("sample: ");
   Serial.print(Ma_Grab_Volt_Value);
   Serial.print("  ");
   Serial.println();
-#endif
+  #endif
 
   fillQueue(Ma_Grab_Volt_Value);
 
@@ -189,14 +186,15 @@ float MovingAverage()
   {
     if (Mov_AvgQ.count() != 0)
     {
-#ifdef DEBUG
+      #ifdef DEBUG
       Serial.print("[");
       Serial.print(Mov_AvgQ.count() - 1);
       Serial.print("]: ");
       Serial.print(Mov_AvgQ.peek());
       Serial.print("  ");
-#endif
+      #endif
     }
+    
     temp = Mov_AvgQ.peek();//this is the temp queue
     tempMA.push(temp);
     Mov_AvgQ.pop();
@@ -209,19 +207,14 @@ float MovingAverage()
     tempMA.pop();
   }
 
-  if (ma_Fill_Index < AVERAGE_WINDOW_SIZE)
-  {
-    ma_Fill_Index++;//i might be able to change this with ".count" 
-  }
+  movingAverage = sumMA / Mov_AvgQ.count();
 
-  movingAverage = sumMA / ma_Fill_Index;
-
-#ifdef DEBUG
+  #ifdef DEBUG
   Serial.print("ma: ");
   Serial.print(movingAverage);
   Serial.print(" V  ");
   Serial.println();
-#endif
+  #endif
 
   sumMA = 0;
   return movingAverage;
@@ -330,9 +323,8 @@ void findInitVolt(float scaleFactor)
 
 void clearQueue()
 {
-  stateFill = 0;//these 3 lines will reset "fillQueue"
+  stateFill = 0;//these 2 lines will reset "fillQueue"
   stateFilled = false;
-  ma_Fill_Index = 0;
 
   while (Mov_AvgQ.count() != 0)
   {
