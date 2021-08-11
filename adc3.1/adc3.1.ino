@@ -311,7 +311,6 @@ void findInitVolt(float scaleFactor)
 
     Serial.print("adc Voltage: ");
     Serial.println(MA);
-
     Serial.print("calculated input Voltage: ");
     Serial.print(MA * scaleFactor);
     Serial.println();
