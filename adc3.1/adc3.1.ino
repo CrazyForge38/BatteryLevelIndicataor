@@ -261,7 +261,11 @@ float battery_Avg_Scale_Factor()
   float avg_Scale_Factor = 0;
   float sum_Scale_Fator = 0;
 
+<<<<<<< HEAD
   while (state_of_Scale_Factor < NUM_SCALE_SAMPLES)
+=======
+  if (state_of_Scale_Factor == 0) //therefore i can re warite this to find a slope y = mx + b // regression method type thing maybe.
+>>>>>>> 8c37861c9cbafe423ad6a9313f22d395b6679b34
   {
     Serial.println("Enter a inital battery power level.");
 
