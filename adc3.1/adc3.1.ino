@@ -5,11 +5,11 @@
 #include "Queue.h"
 
 Adafruit_ADS1115 ads;  /* Use this for the 16-bit version */
-//Adafruit_ADS1015 ads;/* Use this for the 12-bit version */
+//5 decimals for current
+Queue<float> Mov_Avg_VoltQ = Queue<float>(AVERAGE_WINDOW_SIZE);
+//Queue<float> Mov_Avg_VoltQ = Queue<float>(AVERAGE_WINDOW_SIZE);
 
-Queue<float> Mov_AvgQ = Queue<float>(AVERAGE_WINDOW_SIZE);
-
-static int stateFill = 0; //used for reseting "fillQueue"
+static int stateFill = 0; //used for reseting "pushQueue"
 bool stateFilled = false;
 
 void setup(void)
@@ -41,29 +41,100 @@ void setup(void)
 
 void loop(void)
 {
-  static int init_Wait = 0;
+  static int state = 0;
+  static unsigned int mode = 0;
+  static unsigned int subState1 = 0; 
+  static unsigned int subState2 = 0;
+  static unsigned int avgCount = 0;
 
-  if (init_Wait == 0)
+  switch (state)
   {
-    delay(4000);
-    Serial.println("Enter 1 for finding the scale factor ect...");
-    init_Wait++;
+    case 0:  
+      delay(4000);
+      Serial.println("Enter 1 for finding the scale factor ect...");
+      state = 1;
+      subState1 = 0;
+      break;
+
+    case 1: 
+      switch (subState1)
+      {
+        case 0:
+          switch (subState2)
+          {
+            case 0: 
+              Serial.println("Enter a inital battery power level.");
+
+              battery_Volt_Val = grabFloatValue();
+
+              Serial.print("applied Voltage: ");
+              Serial.print(battery_Volt_Val);
+              Serial.print("  ");
+              Serial.println();
+
+              clearQueue();
+
+              subState1 = 1;
+              avgCount = 0;
+              break;
+          }
+          break;
+
+        case 1:
+          if (avgCount < AVERAGE_WINDOW_SIZE)
+          {
+            float Ma_Grab_Volt_Value = grabAdsValue(mode);
+            
+            MovingAverage(Ma_Grab_Volt_Value);
+          }
+          else
+          {
+            subState1 = 0;
+          }
+          avgCount++;
+          break;
+
+        case 2:
+          avg_Scale_Factor = sum_Scale_Fator / NUM_SCALE_SAMPLES;
+
+          Serial.print("The average slope of the 4 is : ");
+          Serial.print(avg_Scale_Factor);
+          Serial.println();
+
+          break;
+
+        default: break;
+      }
+      
+    default: 
+      break;
+  } 
+  else 
+  {
+    float Ma_Grab_Volt_Value = grabAdsValue(mode);
+    
+    MovingAverage(Ma_Grab_Volt_Value);  
   }
 
   switch (Serial.parseInt())
   { 
     case 1:
-      battery_Avg_Scale_Factor();
-      init_Wait = 0;
+      mode = 1;
+      //battery_Avg_Scale_Factor(1);
+      //init_Wait = 0;
       break;
 
     case 2: 
-      //could be used for current
+      mode = 2;
+      //battery_Avg_Scale_Factor(2);
+      //init_Wait = 0;
       break;
 
     default:
       break;
   }
+
+  switch ()
 }
 
 float StartTime()
@@ -127,32 +198,43 @@ float AverageRate(void)
   }
 }
 
-float grabAdsValue()
+float grabAdsValue(unsigned int input)
 {
-  int16_t adsValue0_1, adsValue2_3;
+  int16_t adsValue;
   float volts0, volts1, volts2, volts3;
 
-  adsValue0_1 = ads.readADC_Differential_0_1();
-  adsValue2_3 = ads.readADC_Differential_2_3();
+  switch (input)
+  {
+      case(1): 
+        adsValue = ads.readADC_Differential_0_1();
+        break;
+        
+      case(2): 
+        adsValue = ads.readADC_Differential_2_3();
+        break;
 
-  volts0 = ads.computeVolts(adsValue0_1); //converts ads to voltage
+      default: 
+        adsValue = 0;
+  }
 
+  volts0 = ads.computeVolts(adsValue); //converts ads to voltage
+  
   return volts0;
 }
 
-void fillQueue(float sample)
+void pushQueue(float sample)
 {
 
   if (stateFill < AVERAGE_WINDOW_SIZE)//fills the queue one at a time
   {
-    Mov_AvgQ.push(sample);
+    Mov_Avg_VoltQ.push(sample);
     stateFill++;
   }
 
   if (stateFill == AVERAGE_WINDOW_SIZE && stateFilled == true)//stateFilled lets the queue know that it is filled and can be popped 
   {
-    Mov_AvgQ.pop();
-    Mov_AvgQ.push(sample);
+    Mov_Avg_VoltQ.pop();
+    Mov_Avg_VoltQ.push(sample);
   }
 
   if (stateFill == AVERAGE_WINDOW_SIZE)
@@ -163,16 +245,14 @@ void fillQueue(float sample)
   return;
 }
 
-float MovingAverage()
+float MovingAverage(float Ma_Grab_Volt_Value)
 {
   static float sumMA = 0;
-  static float Ma_Grab_Volt_Value = 0;
+  //static float Ma_Grab_Volt_Value = 0;
   static float movingAverage = 0;
   float temp = 0;
   Queue<float> tempMA = Queue<float>(AVERAGE_WINDOW_SIZE);//temporarily holds the value of the queue to find the sum
   
-  Ma_Grab_Volt_Value = grabAdsValue();
-
   #ifdef DEBUG
   Serial.print("sample: ");
   Serial.print(Ma_Grab_Volt_Value);
@@ -180,34 +260,34 @@ float MovingAverage()
   Serial.println();
   #endif
 
-  fillQueue(Ma_Grab_Volt_Value);
+  pushQueue(Ma_Grab_Volt_Value);
 
-  while (Mov_AvgQ.count() != 0) //.count tells how many floats are in the queue
+  while (Mov_Avg_VoltQ.count() != 0) //.count tells how many floats are in the queue
   {
-    if (Mov_AvgQ.count() != 0)
+    if (Mov_Avg_VoltQ.count() != 0)
     {
       #ifdef DEBUG
       Serial.print("[");
-      Serial.print(Mov_AvgQ.count() - 1);
+      Serial.print(Mov_Avg_VoltQ.count() - 1);
       Serial.print("]: ");
-      Serial.print(Mov_AvgQ.peek());
+      Serial.print(Mov_Avg_VoltQ.peek());
       Serial.print("  ");
       #endif
     }
     
-    temp = Mov_AvgQ.peek();//this is the temp queue
+    temp = Mov_Avg_VoltQ.peek();//this is the temp queue
     tempMA.push(temp);
-    Mov_AvgQ.pop();
+    Mov_Avg_VoltQ.pop();
     sumMA += temp;
   }
 
   while (tempMA.count() != 0)//rebuilds the queue
   {
-    Mov_AvgQ.push(tempMA.peek());
+    Mov_Avg_VoltQ.push(tempMA.peek());
     tempMA.pop();
   }
 
-  movingAverage = sumMA / Mov_AvgQ.count();
+  movingAverage = sumMA / Mov_Avg_VoltQ.count();
 
   #ifdef DEBUG
   Serial.print("ma: ");
@@ -248,13 +328,14 @@ float slopeIntercept(float y, float x)//y = mx + c with c == 0
   return slope;
 }
 
-float battery_Avg_Scale_Factor()
+float battery_Avg_Scale_Factor(unsigned int input)
 {
   float scaled_Output = 0;
   float battery_Volt_Val = 0;
   int state_of_Scale_Factor = 0;
   float avg_Scale_Factor = 0;
   float sum_Scale_Fator = 0;
+  float Ma_Grab_Volt_Value = 0;
 
   while (state_of_Scale_Factor < NUM_SCALE_SAMPLES)
   {
@@ -271,12 +352,12 @@ float battery_Avg_Scale_Factor()
 
     for (int i = 0; i < AVERAGE_WINDOW_SIZE; i++)//repopulate the queue with the new Voltage reading
     {
-      MovingAverage();
+      MovingAverage(input);
     }
 
     state_of_Scale_Factor ++;
-
-    scaled_Output = MovingAverage();
+    
+    scaled_Output = MovingAverage(input);
 
     sum_Scale_Fator += slopeIntercept(battery_Volt_Val, scaled_Output); //(y,x) where y is the battery pack and x is the adc output voltage 
 
@@ -288,45 +369,45 @@ float battery_Avg_Scale_Factor()
   Serial.print(avg_Scale_Factor);
   Serial.println();
 
-  findInitVolt(avg_Scale_Factor);
+  //findInitVolt(avg_Scale_Factor);
 
   return avg_Scale_Factor;
 }
 
-void findInitVolt(float scaleFactor)
-{
-  float MA = 0;
-
-  Serial.print("the scale factor is: ");
-  Serial.println(scaleFactor);
-  Serial.println("press '2' to end the program ");
-  Serial.println();
-
-  while (Serial.parseInt() != 2)
-  {
-    for (int i = 0; i < AVERAGE_WINDOW_SIZE; i++)//repopulate the queue with the new Voltage reading
-    {
-      MA = MovingAverage();
-    }
-
-    Serial.print("adc Voltage: ");
-    Serial.println(MA);
-    Serial.print("calculated input Voltage: ");
-    Serial.print(MA * scaleFactor);
-    Serial.println();
-    Serial.println();
-
-    delay(1000);
-  }
-}
+//void findInitVolt(float scaleFactor)
+//{
+//  float MA = 0;
+//
+//  Serial.print("the scale factor is: ");
+//  Serial.println(scaleFactor);
+//  Serial.println("press '2' to end the program ");
+//  Serial.println();
+//
+//  while (Serial.parseInt() != 2)
+//  {
+//    for (int i = 0; i < AVERAGE_WINDOW_SIZE; i++)//repopulate the queue with the new Voltage reading
+//    {
+//      MA = MovingAverage();
+//    }
+//
+//    Serial.print("adc Voltage: ");
+//    Serial.println(MA);
+//    Serial.print("calculated input Voltage: ");
+//    Serial.print(MA * scaleFactor);
+//    Serial.println();
+//    Serial.println();
+//
+//    delay(1000);
+//  }
+//}
 
 void clearQueue()
 {
-  stateFill = 0;//these 2 lines will reset "fillQueue"
+  stateFill = 0;//these 2 lines will reset "pushQueue"
   stateFilled = false;
 
-  while (Mov_AvgQ.count() != 0)
+  while (Mov_Avg_VoltQ.count() != 0)
   {
-    Mov_AvgQ.pop();
+    Mov_Avg_VoltQ.pop();
   }
 }
