@@ -47,7 +47,7 @@ void loop(void)
   static unsigned int subState2 = 0;
   static unsigned int avgCount = 0;
 
-  switch (state)
+  switch (state)// inital start and second phase
   {
     case 0:  
       delay(4000);
