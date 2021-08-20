@@ -6,12 +6,10 @@
 
 Adafruit_ADS1115 ads;  /* Use this for the 16-bit version */
 
-//potential fixes, i have 3 globals and in my main loop I have 8 statics. 3 used to hold a value of 5 are used to keep track of the state
-
 Queue<float> Mov_Avg_VoltQ = Queue<float>(AVERAGE_WINDOW_SIZE);
 
 static int stateFill = 0; //used for reseting "pushQueue"
-bool stateFilled = false;
+bool stateFilled = false; //
 
 void setup(void)
 {
@@ -40,41 +38,41 @@ void setup(void)
   }
 }
 
-void loop(void)
-{
+void loop(void)//potential fixes, i have 3 globals and in my main loop I have 8 statics. 3 are used to hold a cumulating value and 5 are used to keep track of the state.
+{              // another note, i could had a method that will use the scale factor and print out the applied voltage/current based on whats being read by the adc
   static unsigned int state_Scale_Factor = 0;
   static unsigned int mode = 0;
   static unsigned int state_Data_Collection = 0;
   static unsigned int current_Count_Q = 0;
   static float applied_Source_Val = 0;
-  static unsigned int samples_Collected = 0; 
+  static unsigned int samples_Collected = 0;
   static float sum_Scale_Fator = 0;
   static float stored_MA = 0;
   float temp_Hold_ScaleFactor = 0;
   float avg_Scale_Factor = 0;
-  
+
   switch (state_Scale_Factor)
   {
-    case 0:
+    case 0://introduces the steps of the program
       delay(2000);
 
       Serial.println("enter '1' for voltage, '2' for current, and '3' for fidning the rate of the ADC");
       Serial.println("all ofther values should be floating point, rounded to 2 decimals");
 
       mode = grabUserFloat();
-      state_Scale_Factor = 1;
+      state_Scale_Factor = 1;//increments the first switch case
       state_Data_Collection = 0;
 
       if (mode == 3)
       {
         AverageRate();
-        state_Scale_Factor = 0;
+        state_Scale_Factor = 0;//resets first switch case
       }
 
       break;
 
     case 1:
-      switch (state_Data_Collection)
+      switch (state_Data_Collection)//ask and declares what type of data is beign collected
       {
         case 0:
           Serial.print("Enter a ");
@@ -99,7 +97,7 @@ void loop(void)
 
           break;
 
-        case 1:
+        case 1://fills in the data and finds the sum of the scale factors collected
           if (current_Count_Q < AVERAGE_WINDOW_SIZE)
           {
             float Ma_Grab_Volt_Value = grabAdsValue(mode);
@@ -129,7 +127,7 @@ void loop(void)
 
           break;
 
-        case 2:
+        case 2://finds the average scale factor
           avg_Scale_Factor = sum_Scale_Fator / NUM_SCALE_SAMPLES;
 
           Serial.print("The average slope of the 4 is : ");
@@ -137,7 +135,7 @@ void loop(void)
           Serial.println();
           Serial.println();
 
-          state_Scale_Factor = 2;
+          state_Scale_Factor = 2;//moves the program into the reset/final state
 
           break;
 
@@ -146,7 +144,7 @@ void loop(void)
       }
       break;
 
-    case 2:
+    case 2://resets the program to the inital state
       Serial.println("///////////////////////////////////////////");
       state_Scale_Factor = 0;
       mode = 0;
@@ -192,7 +190,7 @@ float AverageRate(void)
 
   AvgRateState++;
 
-  if (AvgRateState = AVG_RATE_TEST_SIZE)//rate test size was definded
+  if (AvgRateState = AVG_RATE_TEST_SIZE)
   {
     finishTime = FinishTime();
 
@@ -227,11 +225,11 @@ float grabAdsValue(unsigned int input)
 
   switch (input)
   {
-    case (1):
+    case (1)://used for finding the voltage scale factor
       adsValue = ads.readADC_Differential_0_1();
       break;
 
-    case (2):
+    case (2)://used for finding the current scale factor
       adsValue = ads.readADC_Differential_2_3();
       break;
 
@@ -247,19 +245,19 @@ float grabAdsValue(unsigned int input)
 void pushQueue(float sample)
 {
 
-  if (stateFill < AVERAGE_WINDOW_SIZE)//fills the queue one at a time
+  if (stateFill < AVERAGE_WINDOW_SIZE)//fills the queue until the queue has reached AVERAGE_WINDOW_SIZE
   {
     Mov_Avg_VoltQ.push(sample);
     stateFill++;
   }
 
-  if (stateFill == AVERAGE_WINDOW_SIZE && stateFilled == true)//stateFilled lets the queue know that it is filled and can be popped
+  if (stateFill == AVERAGE_WINDOW_SIZE && stateFilled == true)//The queue is filled and will now pop the most recent first in and push the recently collected sample
   {
     Mov_Avg_VoltQ.pop();
     Mov_Avg_VoltQ.push(sample);
   }
 
-  if (stateFill == AVERAGE_WINDOW_SIZE)
+  if (stateFill == AVERAGE_WINDOW_SIZE)//declares when the queue is filled
   {
     stateFilled = true;
   }
@@ -270,10 +268,9 @@ void pushQueue(float sample)
 float MovingAverage(float Ma_Grab_Volt_Value)
 {
   static float sumMA = 0;
-  //static float Ma_Grab_Volt_Value = 0;
   static float movingAverage = 0;
   float temp = 0;
-  Queue<float> tempMA = Queue<float>(AVERAGE_WINDOW_SIZE);//temporarily holds the value of the queue to find the sum
+  Queue<float> tempMA = Queue<float>(AVERAGE_WINDOW_SIZE);//temporarily holds the values of the queue 
 
 #ifdef DEBUG
   Serial.print("sample: ");
@@ -284,7 +281,7 @@ float MovingAverage(float Ma_Grab_Volt_Value)
 
   pushQueue(Ma_Grab_Volt_Value);
 
-  while (Mov_Avg_VoltQ.count() != 0) //.count tells how many floats are in the queue
+  while (Mov_Avg_VoltQ.count() != 0) //.count tells how many floats are in the queue and used for debug mode
   {
     if (Mov_Avg_VoltQ.count() != 0)
     {
@@ -297,7 +294,7 @@ float MovingAverage(float Ma_Grab_Volt_Value)
 #endif
     }
 
-    temp = Mov_Avg_VoltQ.peek();//this is the temp queue
+    temp = Mov_Avg_VoltQ.peek();//pushes the qeueu value into the temp while getting popped to fnid the values
     tempMA.push(temp);
     Mov_Avg_VoltQ.pop();
     sumMA += temp;
@@ -346,7 +343,7 @@ float slopeIntercept(float y, float x, unsigned mode)//y = mx + c with c == 0
   float slope = 0;
 
   slope = y / x;
-  if (mode == 1)
+  if (mode == 1)// mode for voltage
   {
     Serial.print("input voltage: ");
     Serial.print(y);
@@ -354,8 +351,9 @@ float slopeIntercept(float y, float x, unsigned mode)//y = mx + c with c == 0
     Serial.println();
     Serial.print("output voltage: ");
     Serial.print(x);
+    Serial.print(" V");
   }
-  else
+  else //mode for current
   {
     Serial.print("input current: ");
     Serial.print(y);
@@ -363,24 +361,14 @@ float slopeIntercept(float y, float x, unsigned mode)//y = mx + c with c == 0
     Serial.println();
     Serial.print("output current: ");
     Serial.print(x);
+    Serial.println(" Amp");
   }
 
-  {
-    if (mode == 1)
-    {
-      Serial.print(" V");
-    }
-    else
-    {
-      Serial.println(" Amp");
-    }
     Serial.println();
     Serial.print("the slope is: ");
     Serial.println(slope);
     Serial.println();
-
     return slope;
-  }
 }
 
 void clearQueue()
