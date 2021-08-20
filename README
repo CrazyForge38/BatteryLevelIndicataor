@@ -1,6 +1,14 @@
-<<<<<<< HEAD
-this is creating a readme section for the repo with test.
+# Purpose: 
+find the source that is being applied to the ADC (Voltage/Current). This is becuase the ADC scales down the reading of the voltage and current, for voltage the range is 0-5 V, and we need to find the scale factor to scale back to the source being applied.
 
-=======
-this is creating a readme section for the repo.
->>>>>>> 68564d9fb1c741c55c4951fa3302ba63c4f47ba2
+## Strarting out:
+1. 
+the user will be promted to input a int (1 = Voltage, 2 = Current, and 3 = rate of ADC)
+
+1.1/1.2 
+  The user will be promted to enter the source being applied a total of 4 time, which is defined as NUM_SCALE_SAMPLES
+  The average scale factor will be printed on the screen
+1.3 
+Rate will spit out how many samples the ADC can read in a second
+
+### This is not perfect nor complete. We could use the battery's performance chart to find when the battery should read 0% and 100% to prevent the death of the battery.
